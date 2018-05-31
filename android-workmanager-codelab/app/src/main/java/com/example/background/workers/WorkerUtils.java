@@ -18,7 +18,9 @@ package com.example.background.workers;
 
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Build;
@@ -50,7 +52,7 @@ final class WorkerUtils {
 
     /**
      * Create a Notification that is shown as a heads-up notification if possible.
-     *
+     * <p>
      * For this codelab, this is used to show a notification so that you know when different steps
      * of the background work chain are starting
      *
@@ -104,7 +106,8 @@ final class WorkerUtils {
 
     /**
      * Blurs the given Bitmap image
-     * @param bitmap Image to blur
+     *
+     * @param bitmap             Image to blur
      * @param applicationContext Application context
      * @return Blurred bitmap image
      */
@@ -140,8 +143,9 @@ final class WorkerUtils {
 
     /**
      * Writes bitmap to a temporary file and returns the Uri for the file
+     *
      * @param applicationContext Application context
-     * @param bitmap Bitmap to write to temp file
+     * @param bitmap             Bitmap to write to temp file
      * @return Uri for temp file with bitmap
      * @throws FileNotFoundException Throws if bitmap file cannot be found
      */

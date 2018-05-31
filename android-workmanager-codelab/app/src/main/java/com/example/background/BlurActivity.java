@@ -18,9 +18,11 @@ package com.example.background;
 
 import android.arch.lifecycle.ViewModelProviders;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
+import android.text.TextUtils;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -28,6 +30,11 @@ import android.widget.ProgressBar;
 import android.widget.RadioGroup;
 
 import com.bumptech.glide.Glide;
+
+import java.util.List;
+
+import androidx.work.Data;
+import androidx.work.WorkStatus;
 
 
 public class BlurActivity extends AppCompatActivity {
@@ -63,6 +70,45 @@ public class BlurActivity extends AppCompatActivity {
 
         // Setup blur image file button
         mGoButton.setOnClickListener(view -> mViewModel.applyBlur(getBlurLevel()));
+        mOutputButton.setOnClickListener(view -> {
+            Uri currentUri = mViewModel.getOutputUri();
+            if (currentUri != null) {
+                Intent actionView = new Intent(Intent.ACTION_VIEW, currentUri);
+                if (actionView.resolveActivity(getPackageManager()) != null) {
+                    startActivity(actionView);
+                }
+            }
+        });
+        mCancelButton.setOnClickListener(view -> mViewModel.cancelWork());
+
+        mViewModel.getOutputStatus().observe(this, this::onOutputStatusChanged);
+    }
+
+    private void onOutputStatusChanged(List<WorkStatus> listOfWorkStatuses) {
+        // If there are no matching work statuses, do nothing
+        if (listOfWorkStatuses == null || listOfWorkStatuses.isEmpty()) {
+            return;
+        }
+
+        // We only care about the one output status.
+        // Every continuation has only one worker tagged with TAG_OUTPUT
+        WorkStatus workStatus = listOfWorkStatuses.get(0);
+
+        boolean finished = workStatus.getState().isFinished();
+        if (!finished) {
+            showWorkInProgress();
+        } else {
+            showWorkFinished();
+            // Retrieve data from this worker's output
+            Data outputData = workStatus.getOutputData();
+            String outputImageUrl = outputData.getString(Constants.KEY_IMAGE_URI, null);
+            if (!TextUtils.isEmpty(outputImageUrl)) {
+                mViewModel.setOutputUri(Uri.parse(outputImageUrl));
+                mOutputButton.setVisibility(View.VISIBLE);
+            } else {
+                mOutputButton.setVisibility(View.GONE);
+            }
+        }
     }
 
     /**
@@ -86,12 +132,13 @@ public class BlurActivity extends AppCompatActivity {
 
     /**
      * Get the blur level from the radio button as an integer
+     *
      * @return Integer representing the amount of times to blur the image
      */
     private int getBlurLevel() {
         RadioGroup radioGroup = findViewById(R.id.radio_blur_group);
 
-        switch(radioGroup.getCheckedRadioButtonId()) {
+        switch (radioGroup.getCheckedRadioButtonId()) {
             case R.id.radio_blur_lv_1:
                 return 1;
             case R.id.radio_blur_lv_2:

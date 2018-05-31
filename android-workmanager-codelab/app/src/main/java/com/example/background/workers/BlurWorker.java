@@ -23,6 +23,9 @@ public class BlurWorker extends Worker {
         String resourceUri = getInputData().getString(Constants.KEY_IMAGE_URI, null);
         Context appContext = getApplicationContext();
 
+        WorkerUtils.makeStatusNotification("Doing BlurWorker", appContext);
+        WorkerUtils.sleep();
+
         try {
             if (TextUtils.isEmpty(resourceUri)) {
                 Log.e(TAG, "Invalid input uri");
@@ -43,6 +46,7 @@ public class BlurWorker extends Worker {
             // Set output blurry picture
             setOutputData(new Data.Builder().putString(
                     Constants.KEY_IMAGE_URI, outputUri.toString()).build());
+            // Current Worker's output will be next Worker's input
 
             return WorkerResult.SUCCESS;
         } catch (Throwable throwable) {

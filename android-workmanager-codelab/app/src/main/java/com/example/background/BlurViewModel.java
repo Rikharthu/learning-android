@@ -16,6 +16,7 @@
 
 package com.example.background;
 
+import android.arch.lifecycle.LiveData;
 import android.arch.lifecycle.ViewModel;
 import android.net.Uri;
 import android.text.TextUtils;
@@ -24,19 +25,26 @@ import com.example.background.workers.BlurWorker;
 import com.example.background.workers.CleanupWorker;
 import com.example.background.workers.SaveImageToFileWorker;
 
+import java.util.List;
+
+import androidx.work.Constraints;
 import androidx.work.Data;
 import androidx.work.ExistingWorkPolicy;
 import androidx.work.OneTimeWorkRequest;
 import androidx.work.WorkContinuation;
 import androidx.work.WorkManager;
+import androidx.work.WorkStatus;
 
 public class BlurViewModel extends ViewModel {
 
     private Uri mImageUri;
     private WorkManager mWorkManager;
+    private LiveData<List<WorkStatus>> mSavedWorkStatus;
+    private Uri mOutputUri;
 
     public BlurViewModel() {
         mWorkManager = WorkManager.getInstance();
+        mSavedWorkStatus = mWorkManager.getStatusesByTag(Constants.TAG_OUTPUT);
     }
 
     /**
@@ -77,10 +85,18 @@ public class BlurViewModel extends ViewModel {
             continuation = continuation.then(blurBuilder.build());
         }
 
+        // Optionally create constraints for work
+        Constraints constraints = new Constraints.Builder()
+                .setRequiresCharging(true)
+                .build();
+
         // Add WorkRequest to save the image to the filesystem
         OneTimeWorkRequest save = new OneTimeWorkRequest.Builder(SaveImageToFileWorker.class)
+                .addTag(Constants.TAG_OUTPUT)   // Tag this work request to later fetch it's status
+                .setConstraints(constraints)
                 .build();
         continuation = continuation.then(save);
+
 
         // Actually start the work
         continuation.enqueue();
@@ -123,4 +139,22 @@ public class BlurViewModel extends ViewModel {
         return mImageUri;
     }
 
+    LiveData<List<WorkStatus>> getOutputStatus() {
+        return mSavedWorkStatus;
+    }
+
+    public Uri getOutputUri() {
+        return mOutputUri;
+    }
+
+    public void setOutputUri(Uri mOutputUri) {
+        this.mOutputUri = mOutputUri;
+    }
+
+    /**
+     * Cancel work using the work's unique name
+     */
+    void cancelWork() {
+        mWorkManager.cancelUniqueWork(Constants.IMAGE_MANIPULATION_WORK_NAME);
+    }
 }
